@@ -1,11 +1,14 @@
 import numpy as np
 import tensorflow as tf
+from collections import defaultdict
 
 # the number of iterations to train for
 numTrainingIters = 10000
 
 # the number of hidden neurons that hold the state of the RNN
+hiddenUnits = 500 # TODO: make this 500 for task 2
 hiddenUnits = 1000
+
 
 # the number of classes that we are learning over
 numClasses = 3
@@ -13,7 +16,7 @@ numClasses = 3
 # the number of data points in a batch
 batchSize = 100
 
-character from 0 to 255, fancy name for dictionary encoding. gets the line
+# one hot  encoding -- character from 0 to 255, fancy name for dictionary encoding. gets the line
 
 # this function takes a dictionary (called data) which contains 
 # of (dataPointID, (classNumber, matrix)) entries.  Each matrix
@@ -168,12 +171,18 @@ initialState = tf.placeholder(tf.float32, [batchSize, hiddenUnits])
 # the weight matrix that maps the inputs and hidden state to a set of values
 W = tf.Variable(np.random.normal(0, 0.05, (hiddenUnits + 256, hiddenUnits)), dtype=tf.float32)
 
-# biaes for the hidden values
+# biases for the hidden values
 b = tf.Variable(np.zeros((1, hiddenUnits)), dtype=tf.float32)
 
-# weights and bias for the final classification
+# weights and bias for the final classification. Used by the output layer.
 W2 = tf.Variable(np.random.normal (0, 0.05, (hiddenUnits, numClasses)),dtype=tf.float32)
 b2 = tf.Variable(np.zeros((1,numClasses)), dtype=tf.float32)
+
+initialTimeWarpState = tf.variable(tf.placeholder(tf.float32, [batchSize, hiddenUnits]))
+def returnInitialTimeWarp():
+    return initialTimeWarpState
+timeWarpStates = defaultdict(returnInitialTimeWarp)
+
 
 # unpack the input sequences so that we have a series of matrices,
 # each of which has a one-hot encoding of the current character from
@@ -203,42 +212,43 @@ totalLoss = tf.reduce_mean(losses)
 trainingAlg = tf.train.AdagradOptimizer(0.02).minimize(totalLoss)
 
 # and train!!
-with tf.Session() as sess:
-    #
-    # initialize everything
-    sess.run(tf.global_variables_initializer())
-    #
-    # and run the training iters
-    for epoch in range(numTrainingIters):
-        # 
-        # get some data
-        x, y = generateDataRNN (maxSeqLen, data)
+def task0():
+    with tf.Session() as sess:
         #
-        # do the training epoch
-        _currentState = np.zeros((batchSize, hiddenUnits))
-        _totalLoss, _trainingAlg, _currentState, _predictions, _outputs = sess.run(
-                [totalLoss, trainingAlg, currentState, predictions, outputs],
-                feed_dict={
-                    inputX:x,
-                    inputY:y,
-                    initialState:_currentState
-                })
+        # initialize everything
+        sess.run(tf.global_variables_initializer())
         #
-        # just FYI, compute the number of correct predictions
-        numCorrect = 0
-        for i in range (len(y)):
-           maxPos = -1
-           maxVal = 0.0
-           for j in range (numClasses):
-               if maxVal < _predictions[i][j]:
-                   maxVal = _predictions[i][j]
-                   maxPos = j
-           if maxPos == y[i]:
-               numCorrect = numCorrect + 1
-        #
-        # print out to the screen
-        if epoch > numTrainingIters - 30:
-            print("Step", epoch, "Loss", _totalLoss, "Correct", numCorrect, "out of", batchSize)
+        # and run the training iters
+        for epoch in range(numTrainingIters):
+            #
+            # get some data
+            x, y = generateDataRNN (maxSeqLen, data)
+            #
+            # do the training epoch
+            _currentState = np.zeros((batchSize, hiddenUnits))
+            _totalLoss, _trainingAlg, _currentState, _predictions, _outputs = sess.run(
+                    [totalLoss, trainingAlg, currentState, predictions, outputs],
+                    feed_dict={
+                        inputX:x,
+                        inputY:y,
+                        initialState:_currentState
+                    })
+            #
+            # just FYI, compute the number of correct predictions
+            numCorrect = 0
+            for i in range (len(y)):
+               maxPos = -1
+               maxVal = 0.0
+               for j in range (numClasses):
+                   if maxVal < _predictions[i][j]:
+                       maxVal = _predictions[i][j]
+                       maxPos = j
+               if maxPos == y[i]:
+                   numCorrect = numCorrect + 1
+            #
+            # print out to the screen
+            if epoch > numTrainingIters - 30:
+                print("Step", epoch, "Loss", _totalLoss, "Correct", numCorrect, "out of", batchSize)
 
 
-
+def task2():
