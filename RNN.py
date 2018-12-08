@@ -6,8 +6,10 @@ from collections import defaultdict
 numTrainingIters = 10000
 
 # the number of hidden neurons that hold the state of the RNN
-# hiddenUnits = 500 # TODO: make this 500 for task 2
 hiddenUnits = 1000
+
+# TASK 2 SPECIFIC:
+# hiddenUnits = 500 # TODO: make this 500 for task 2
 
 
 # the number of classes that we are learning over
@@ -329,6 +331,9 @@ initialState = tf.placeholder(tf.float32, [batchSize, hiddenUnits])
 # the weight matrix that maps the inputs and hidden state to a set of values
 W = tf.Variable(np.random.normal(0, 0.05, (hiddenUnits + 256, hiddenUnits)), dtype=tf.float32)
 
+# TASK 2 SPECIFIC:
+# task2W = tf.Variable(np.random.normal(0, 0.05, (256 + hiddenUnits + hiddenUnits, hiddenUnits)), dtype=tf.float32)
+
 # biases for the hidden values
 b = tf.Variable(np.zeros((1, hiddenUnits)), dtype=tf.float32)
 
@@ -355,7 +360,8 @@ for timeTick in sequenceOfLetters:
 
 ############# Task2 Below:   ###############
 # now we implement the forward pass
-initialTimeWarpState = tf.Variable((tf.float32, [batchSize, hiddenUnits]))
+initialTimeWarpState = tf.Variable(np.zeros((batchSize, hiddenUnits)), dtype=tf.float32)
+
 def returnInitialTimeWarp():
     return initialTimeWarpState
 timeWarpStates = defaultdict(returnInitialTimeWarp)
@@ -398,8 +404,16 @@ with tf.Session() as sess:
         # do the training epoch
         _currentState = np.zeros((batchSize, hiddenUnits))
         # TODO: DO WE MERELY CHANGE THE ABOVE TENSOR FOR TIMEWARP??
-        _totalLoss, _trainingAlg, _currentState, _predictions, _outputs = sess.run(
-            [totalLoss, trainingAlg, currentState, predictions, outputs],
+        # _totalLoss, _trainingAlg, _currentState, _predictions, _outputs = sess.run(
+        #     [totalLoss, trainingAlg, currentState, predictions, outputs],
+        #     feed_dict={
+        #         inputX: x,
+        #         inputY: y,
+        #         initialState: _currentState
+        #     })
+        _totalLoss, _trainingAlg, _currentState, _predictions, _outputs, _initialTimeWarpState = sess.run(
+            [totalLoss, trainingAlg, currentState, predictions, outputs,
+             initialTimeWarpState],
             feed_dict={
                 inputX: x,
                 inputY: y,
@@ -422,13 +436,7 @@ with tf.Session() as sess:
 
 
 ### FOR TASK 2: ###
-# _totalLoss, _trainingAlg, _currentState, _predictions, _outputs, _initialTimeWarpState = sess.run(
-#         [totalLoss, trainingAlg, currentState, predictions, outputs, initialTimeWarpState],
-#         feed_dict={
-#             inputX:x,
-#             inputY:y,
-#             initialState:_currentState
-#         })
+
 
 
 ## TESTING PHASE ##
@@ -443,7 +451,6 @@ with tf.Session() as sess:
     #
     # and run the training iters
     for epoch in range(numTestingIters):
-
         # TODO: we need some way to get a batch of test data
         x, y = generateDataRNN (maxSeqLen, testData)
         currTestLoss, testPredictions = sess.run(
@@ -453,7 +460,6 @@ with tf.Session() as sess:
                 inputY: y,
                 initialState: _currentState
             })
-
         for i in range (len(y)):
            maxPos = -1
            maxVal = 0.0
@@ -463,11 +469,7 @@ with tf.Session() as sess:
                    maxPos = j
            if maxPos == y[i]:
                correctTestGuess += 1
-
         testingLossSum += currTestLoss
-
-
-print("Loss for 3000 randomly chosen documents is %f, number correct labels is %d out of 3000"
-      % (testingLossSum, correctTestGuess))
+print("Loss for 3000 randomly chosen documents is %f, number correct labels is %d out of 3000" % (testingLossSum, correctTestGuess))
 
 
